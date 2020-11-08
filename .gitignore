@@ -10,4 +10,5 @@ jspm_packages
 
 product-service/.webpack
 product-service/.serverless
+product-service/.env
 product-service/node_modules

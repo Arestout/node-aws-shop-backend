@@ -11,11 +11,13 @@ const serverlessConfiguration: Serverless = {
   custom: {
     webpack: {
       webpackConfig: './webpack.config.js',
-      includeModules: true
-    }
+      includeModules: {
+        forceExclude: ['@types/aws-lambda']
+      }
+    },
   },
   // Add the serverless-webpack plugin
-  plugins: ['serverless-webpack'],
+  plugins: ['serverless-webpack', 'serverless-dotenv-plugin', 'serverless-offline'],
   provider: {
     name: 'aws',
     runtime: 'nodejs12.x',
@@ -26,6 +28,11 @@ const serverlessConfiguration: Serverless = {
     },
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+      PG_HOST: process.env.RDS_HOST,
+      PG_PORT: process.env.RDS_PORT,
+      PG_DATABASE: process.env.RDS_DATABASE,
+      PG_USERNAME: process.env.RDS_USERNAME,
+      PG_PASSWORD: process.env.RDS_PASSWORD
     },
   },
   functions: {
@@ -47,6 +54,18 @@ const serverlessConfiguration: Serverless = {
           http: {
             method: 'get',
             path: '/products/{productId}',
+          }
+        }
+      ]
+    },
+    postProduct: {
+      handler: 'handler.postProduct',
+      events: [
+        {
+          http: {
+            method: 'post',
+            path: 'products',
+            cors: true
           }
         }
       ]
