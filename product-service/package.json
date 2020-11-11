@@ -8,9 +8,12 @@
   },
   "dependencies": {
     "@middy/core": "^1.4.0",
+    "@middy/http-cors": "^1.4.0",
     "@middy/http-error-handler": "^1.4.0",
     "@middy/http-json-body-parser": "^1.4.0",
+    "@middy/http-security-headers": "^1.4.0",
     "@middy/validator": "^1.4.0",
+    "http-errors": "^1.8.0",
     "pg": "^8.4.2",
     "serverless-dotenv-plugin": "^3.1.0",
     "source-map-support": "^0.5.10",
