@@ -2,15 +2,18 @@ import { APIGatewayEvent, APIGatewayProxyResult} from 'aws-lambda';
 import 'source-map-support/register';
 import { dbOptions } from '../db/db-options';
 import { Client } from 'pg';
-import middy from '@middy/core';
+import  * as createError from 'http-errors';
+import middy from '@middy/core'; 
 import validator from '@middy/validator';
 import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
+import cors from '@middy/http-cors';
+import httpSecurityHeaders from '@middy/http-security-headers';
 
 const postProduct = middy(async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
   const { httpMethod, path, body } = event;
   console.log(JSON.stringify({ httpMethod, path, body }, null, 2))
-
+  
   const client = new Client(dbOptions);
   await client.connect();
 
@@ -35,37 +38,20 @@ const postProduct = middy(async (event: APIGatewayEvent): Promise<APIGatewayProx
   
     
     if (!product) {
-      return {
-        statusCode: 403,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Credentials': true,
-        },
-        body: JSON.stringify(`Product creation failed`)
-      }
+      throw new createError.BadRequest('Product creation failed')
     }
     
     return {
-      statusCode: 200,
+      statusCode: 201,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
       },
       body: JSON.stringify(product[0]),
     };
   } catch (err) {
-    console.log(err);
     await client.query('ROLLBACK');
+    throw new createError.InternalServerError();
 
-    return {
-      statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
-      },
-      body: 'Something went wrong'
-    }
   } finally {
     client.end();
   }
@@ -77,8 +63,8 @@ const inputSchema = {
     body: {
       type: 'object',
       properties: {
-        title: { type: 'string', minLength: 2, maxLength: 19 },
-        description: { type: 'string', minLength: 2, maxLength: 19 },
+        title: { type: 'string', minLength: 2, maxLength: 1024 },
+        description: { type: 'string', minLength: 2, maxLength: 3024 },
         price: { type: 'integer'},
         image: { type: 'string', minLength: 3 },
         count: { type: 'number' }
@@ -89,8 +75,10 @@ const inputSchema = {
 }
 
 postProduct
+  .use(httpSecurityHeaders())
   .use(jsonBodyParser())
   .use(validator({ inputSchema }))
-  .use(httpErrorHandler());
+  .use(httpErrorHandler())
+  .use(cors());
 
   export { postProduct };
