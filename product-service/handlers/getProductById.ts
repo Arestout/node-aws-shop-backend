@@ -1,11 +1,21 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import 'source-map-support/register';
-import { productList } from "../productList";
+import { dbOptions } from '../db/db-options';
+import { Client } from 'pg';
 
 export const getProductById: APIGatewayProxyHandler = async (event, _context) => {
+  const { httpMethod, path, pathParameters } = event;
+  console.log(JSON.stringify({ httpMethod, path, pathParameters }, null, 2))
+
+  const client = new Client(dbOptions);
+  await client.connect();
+
   try {
     const { productId } = event.pathParameters;
-    const product = productList.find(product => product.id === productId);
+    const { rows: product } = await client.query(`
+    SELECT p.*, s.count FROM products p LEFT JOIN stocks s ON p.id = s.product_id WHERE p.id = $1`,
+    [productId]
+    );
 
     if (!product) {
       return {
@@ -25,9 +35,10 @@ export const getProductById: APIGatewayProxyHandler = async (event, _context) =>
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Credentials': true,
       },
-      body: JSON.stringify(product),
+      body: JSON.stringify(product[0]),
     };
   } catch (err) {
+    console.log(err);
     return {
       statusCode: 500,
       headers: {
@@ -36,5 +47,7 @@ export const getProductById: APIGatewayProxyHandler = async (event, _context) =>
       },
       body: 'Something went wrong'
     }
+  } finally {
+    client.end();
   }
 }
