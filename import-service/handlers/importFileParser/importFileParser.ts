@@ -24,16 +24,14 @@ const importFileParser = middy(async (event: S3Event) => {
           })
           .promise();
 
-        await s3.deleteObject(params).promise();
+        await s3.deleteObject(params).promise();  
         }
 
-        const parseCSV = async (record: S3EventRecord) => new Promise((resolve, reject) => {
+        const parseCSV = (record: S3EventRecord) => new Promise((resolve, reject) => {
             const params = {
                 Bucket: BUCKET,
                 Key: record.s3.object.key,
             };
-
-            const csvData = [];
 
             const csvStream = s3.getObject(params).createReadStream();
 
@@ -41,24 +39,21 @@ const importFileParser = middy(async (event: S3Event) => {
             .pipe(csvParser())
             .on('data', (data) => {
                 console.log(data);
-                csvData.push(data);
             })
             .on('end', async () => {
                 await onStreamEnd(record, params);
-                resolve(csvData);
+                console.log('end');
+                resolve();
             })
             .on('error', (err) => {
                 reject(err);
             })
-        })
+        }); 
 
-        for (const record of event.Records) {
-            await parseCSV(record);
-        }
+        const recordPromises = event.Records.map(parseCSV);
+
+        return Promise.allSettled(recordPromises);
         
-        return {
-            statusCode: 202
-        }
     } catch (error) {
         console.log(error);
         throw new createError.InternalServerError();

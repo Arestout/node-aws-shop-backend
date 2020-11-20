@@ -8,6 +8,7 @@ import httpErrorHandler from '@middy/http-error-handler';
 import cors from '@middy/http-cors';
 import httpSecurityHeaders from '@middy/http-security-headers';
 import { BUCKET } from '../../config';
+import { schema } from './importProductsFile.schema';
 
 const importProductsFile = middy(async (event: APIGatewayProxyEventBase<APIGatewayEventDefaultAuthorizerContext>) => {
   console.log({ event });
@@ -43,19 +44,6 @@ const importProductsFile = middy(async (event: APIGatewayProxyEventBase<APIGatew
     throw new createError.InternalServerError();
   }
 })
-
-const schema = { 
-  required: ['name'],
-  properties: {
-    queryStringParameters: {
-      type: 'object',
-      properties: {
-        name: { type: 'string'}
-      }
-    }
-  }
-}
-
 
 importProductsFile
   .use(validator({ inputSchema: schema }))
