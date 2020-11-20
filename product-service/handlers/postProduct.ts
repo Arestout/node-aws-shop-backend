@@ -2,7 +2,7 @@ import { APIGatewayEvent, APIGatewayProxyResult} from 'aws-lambda';
 import 'source-map-support/register';
 import { dbOptions } from '../db/db-options';
 import { Client } from 'pg';
-import  * as createError from 'http-errors';
+import createError from 'http-errors';
 import middy from '@middy/core'; 
 import validator from '@middy/validator';
 import httpErrorHandler from '@middy/http-error-handler';
