@@ -1,7 +1,7 @@
 'use strict';
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import 'source-map-support/register';
-import { dbOptions } from '../db/db-options';
+import { dbOptions } from '../../db/db-options';
 import { Client } from 'pg';
 
 export const getProductsList: APIGatewayProxyHandler = async (event, _context) => {

@@ -1,6 +1,6 @@
 import { APIGatewayEvent, APIGatewayProxyResult} from 'aws-lambda';
 import 'source-map-support/register';
-import { dbOptions } from '../db/db-options';
+import { dbOptions } from '../../db/db-options';
 import { Client } from 'pg';
 import createError from 'http-errors';
 import middy from '@middy/core'; 
@@ -9,6 +9,7 @@ import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import cors from '@middy/http-cors';
 import httpSecurityHeaders from '@middy/http-security-headers';
+import { inputSchema } from './postProduct.schema'
 
 const postProduct = middy(async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
   const { httpMethod, path, body } = event;
@@ -56,23 +57,6 @@ const postProduct = middy(async (event: APIGatewayEvent): Promise<APIGatewayProx
     client.end();
   }
 })
-
-const inputSchema = {
-  type: 'object',
-  properties: {
-    body: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', minLength: 2, maxLength: 1024 },
-        description: { type: 'string', minLength: 2, maxLength: 3024 },
-        price: { type: 'integer'},
-        image: { type: 'string', minLength: 3 },
-        count: { type: 'number' }
-      },
-      required: ['title', 'description', 'price', 'image', 'count' ] 
-    }
-  }
-}
 
 postProduct
   .use(httpSecurityHeaders())
