@@ -3,13 +3,14 @@ import 'source-map-support/register';
 import AWS from 'aws-sdk';
 import createError from 'http-errors';
 import middy from '@middy/core'; 
+import validator from '@middy/validator';
 import httpErrorHandler from '@middy/http-error-handler';
 import cors from '@middy/http-cors';
 import httpSecurityHeaders from '@middy/http-security-headers';
 import { BUCKET } from '../../config';
 
 const importProductsFile = middy(async (event: APIGatewayProxyEventBase<APIGatewayEventDefaultAuthorizerContext>) => {
-  console.log( {event} );
+  console.log({ event });
 
   const { name } = event.queryStringParameters;
   const path = `uploaded/${name}`;
@@ -43,8 +44,21 @@ const importProductsFile = middy(async (event: APIGatewayProxyEventBase<APIGatew
   }
 })
 
+const schema = { 
+  required: ['name'],
+  properties: {
+    queryStringParameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string'}
+      }
+    }
+  }
+}
+
 
 importProductsFile
+  .use(validator({ inputSchema: schema }))
   .use(httpSecurityHeaders())
   .use(httpErrorHandler())
   .use(cors());

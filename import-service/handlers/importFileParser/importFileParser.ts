@@ -54,10 +54,10 @@ const importFileParser = middy(async (event: S3Event) => {
 
         for (const record of event.Records) {
             await parseCSV(record);
-
-            return {
-                statusCode: 202
-            }
+        }
+        
+        return {
+            statusCode: 202
         }
     } catch (error) {
         console.log(error);
