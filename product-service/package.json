@@ -12,6 +12,7 @@
     "@middy/http-error-handler": "^1.4.0",
     "@middy/http-json-body-parser": "^1.4.0",
     "@middy/http-security-headers": "^1.4.0",
+    "@middy/sqs-partial-batch-failure": "^1.4.0",
     "@middy/validator": "^1.4.0",
     "http-errors": "^1.8.0",
     "pg": "^8.4.2",

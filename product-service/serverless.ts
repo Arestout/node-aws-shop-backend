@@ -16,6 +16,38 @@ const serverlessConfiguration: Serverless = {
       }
     },
   },
+  resources: {
+    Outputs: { 
+      SQSQueueUrl: {
+        Value: { Ref: 'SQSQueueCSV'}
+      },
+      SQSQueueArn: {
+        Value: { 'Fn::GetAtt': ['SQSQueueCSV', 'Arn'] }
+      }
+    },
+    Resources: {
+      SQSQueueCSV: {
+        Type: 'AWS::SQS::Queue',
+        Properties: {
+          QueueName: 'catalogItemsQueue'
+        }
+      },
+      SNSTopic: {
+        Type: 'AWS::SNS::Topic',
+        Properties: {
+          TopicName: 'createProductFromCSV'
+        }
+      }
+    }
+    // Resources: {
+    //   SQSQueue: {
+    //     Type: "AWS::SQS::Queue",
+    //     Properties: {
+    //       QueueName: "catalogItemsQueue",
+    //     },
+    //   },
+    // }
+  },
   // Add the serverless-webpack plugin
   plugins: ['serverless-webpack', 'serverless-dotenv-plugin', 'serverless-offline'],
   provider: {
@@ -34,6 +66,12 @@ const serverlessConfiguration: Serverless = {
       PG_USERNAME: process.env.RDS_USERNAME,
       PG_PASSWORD: process.env.RDS_PASSWORD
     },
+    iamRoleStatements: [
+      { Effect: 'Allow',
+        Action: 'sqs:*',
+        Resource: [{ 'Fn::GetAtt': ['SQSQueueCSV', 'Arn'] }]
+      }
+    ]
   },
   functions: {
     getProductsList: {
@@ -66,6 +104,19 @@ const serverlessConfiguration: Serverless = {
             method: 'post',
             path: 'products',
             cors: true
+          }
+        }
+      ]
+    },
+    catalogBatchProcess: {
+      handler: 'handler.catalogBatchProcess',
+      events: [
+        {
+          sqs: {
+            batchSize: 5,
+            arn: {
+              'Fn::GetAtt': ['SQSQueueCSV', 'Arn']
+            }
           }
         }
       ]

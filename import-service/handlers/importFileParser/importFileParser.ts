@@ -11,7 +11,23 @@ import { BUCKET } from '../../config';
 
 const importFileParser = middy(async (event: S3Event) => {
     try {
-        const s3 = new AWS.S3({region: 'eu-west-1'});
+        AWS.config.update({region: 'eu-west-1'});
+        const s3 = new AWS.S3();
+        const sqs = new AWS.SQS();
+        const { SQS_URL } = process.env;
+
+        const sendMessageToQueue = (data) => {
+            sqs.sendMessage({
+                QueueUrl: SQS_URL,
+                MessageBody: JSON.stringify(data)
+            },
+            (err, data) => {
+                if (err) {
+                    console.log('SQS: ' + err.message);
+                    return;
+                }
+            })
+        }
 
         const onStreamEnd = async (record: S3EventRecord, params) => {
         const key = record.s3.object.key.replace('uploaded', 'parsed');
@@ -39,6 +55,7 @@ const importFileParser = middy(async (event: S3Event) => {
             .pipe(csvParser())
             .on('data', (data) => {
                 console.log(data);
+                sendMessageToQueue(data);
             })
             .on('end', async () => {
                 await onStreamEnd(record, params);
@@ -52,7 +69,11 @@ const importFileParser = middy(async (event: S3Event) => {
 
         const recordPromises = event.Records.map(parseCSV);
 
-        return Promise.allSettled(recordPromises);
+        await Promise.allSettled(recordPromises);
+
+        return {
+            statusCode: 202
+        }
         
     } catch (error) {
         console.log(error);
@@ -60,7 +81,6 @@ const importFileParser = middy(async (event: S3Event) => {
     }
     
 })
-
 
 importFileParser
   .use(httpSecurityHeaders())
