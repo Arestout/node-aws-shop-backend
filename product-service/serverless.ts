@@ -35,18 +35,18 @@ const serverlessConfiguration: Serverless = {
       SNSTopic: {
         Type: 'AWS::SNS::Topic',
         Properties: {
-          TopicName: 'createProductFromCSV'
+          TopicName: 'createProductTopic'
+        }
+      },
+      SNSSubscription: {
+        Type: 'AWS::SNS::Subscription',
+        Properties: {
+          Endpoint: '${self:provider.environment.EMAIL}',
+          Protocol: 'email',
+          TopicArn: { Ref: 'SNSTopic' }
         }
       }
     }
-    // Resources: {
-    //   SQSQueue: {
-    //     Type: "AWS::SQS::Queue",
-    //     Properties: {
-    //       QueueName: "catalogItemsQueue",
-    //     },
-    //   },
-    // }
   },
   // Add the serverless-webpack plugin
   plugins: ['serverless-webpack', 'serverless-dotenv-plugin', 'serverless-offline'],
@@ -64,12 +64,18 @@ const serverlessConfiguration: Serverless = {
       PG_PORT: process.env.RDS_PORT,
       PG_DATABASE: process.env.RDS_DATABASE,
       PG_USERNAME: process.env.RDS_USERNAME,
-      PG_PASSWORD: process.env.RDS_PASSWORD
+      PG_PASSWORD: process.env.RDS_PASSWORD,
+      EMAIL: process.env.EMAIL,
+      SNS_ARN: { Ref: "SNSTopic" }
     },
     iamRoleStatements: [
       { Effect: 'Allow',
         Action: 'sqs:*',
         Resource: [{ 'Fn::GetAtt': ['SQSQueueCSV', 'Arn'] }]
+      },
+      { Effect: 'Allow',
+        Action: 'sns:*',
+        Resource: [{ Ref: "SNSTopic" }]
       }
     ]
   },

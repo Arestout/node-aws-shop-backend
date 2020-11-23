@@ -1,5 +1,5 @@
 import { SQSRecord, SQSEvent } from 'aws-lambda';
-// import { SNS } from "aws-sdk";
+import { SNS } from "aws-sdk";
 import createError from 'http-errors';
 import middy from '@middy/core'; 
 import httpErrorHandler from '@middy/http-error-handler';
@@ -11,7 +11,7 @@ import { dbOptions, addProductToDB } from '../../db';
 import { Client } from 'pg';
 
 const catalogBatchProcess = middy(async (event: SQSEvent) => {
-  
+    
     const processMessage = async (record: SQSRecord) => {
       const productData = JSON.parse(record.body)
       const client = new Client(dbOptions);
@@ -40,6 +40,30 @@ const catalogBatchProcess = middy(async (event: SQSEvent) => {
     const messageProcessingPromises = event.Records.map(processMessage);
 
     return Promise.allSettled(messageProcessingPromises)
+})
+
+catalogBatchProcess.after(async (handler, next) => {
+  const sns = new SNS({ region: 'eu-west-1'});
+  const { SNS_ARN } = process.env;
+
+  await sns
+  .publish(
+    {
+      Subject: "New products were added to the database",
+      Message: "New products were added to the database",
+      TopicArn: SNS_ARN,
+    },
+    (error, data) => {
+      if (error) {
+        console.log("SNS error: ", error);
+        return;
+      }
+
+      console.log("SNS: message was sent:", data);
+    }
+  )
+  .promise();
+  next();
 })
 
 catalogBatchProcess
