@@ -1,75 +1,71 @@
 import { SQSRecord, SQSEvent } from 'aws-lambda';
-import { SNS } from "aws-sdk";
+import { SNS } from 'aws-sdk';
 import createError from 'http-errors';
-import middy from '@middy/core'; 
+import middy from '@middy/core';
 import httpErrorHandler from '@middy/http-error-handler';
-import cors from '@middy/http-cors';
-import httpSecurityHeaders from '@middy/http-security-headers';
-import sqsPartialBatchFailure from'@middy/sqs-partial-batch-failure';
+import sqsPartialBatchFailure from '@middy/sqs-partial-batch-failure';
 import 'source-map-support/register';
 import { dbOptions, addProductToDB } from '../../db';
 import { Client } from 'pg';
 
 const catalogBatchProcess = middy(async (event: SQSEvent) => {
-    
-    const processMessage = async (record: SQSRecord) => {
-      const productData = JSON.parse(record.body)
-      const client = new Client(dbOptions);
-      await client.connect();
-      
-      try {
-        const productId = await addProductToDB(client, productData);
+  const processMessage = async (record: SQSRecord) => {
+    const productData = JSON.parse(record.body);
+    const client = new Client(dbOptions);
+    await client.connect();
 
-        const { rows: product } = await client.query(
-          `SELECT p.*, s.count FROM products p LEFT JOIN stocks s ON p.id = s.product_id WHERE p.id = $1`,
-        [productId]);
+    try {
+      const productId = await addProductToDB(client, productData);
 
-        if (!product) {
-          throw new createError.BadRequest('Product creation failed');
-        }
+      const {
+        rows: product,
+      } = await client.query(
+        `SELECT p.*, s.count FROM products p LEFT JOIN stocks s ON p.id = s.product_id WHERE p.id = $1`,
+        [productId]
+      );
 
-        return;
-      } catch (error) {
-        console.log(error);
-        throw new createError.InternalServerError();
-      } finally {
-        client.end();
+      if (!product) {
+        throw new createError.BadRequest('Product creation failed');
       }
+
+      return;
+    } catch (error) {
+      console.log(error);
+      throw new createError.InternalServerError();
+    } finally {
+      client.end();
     }
+  };
 
-    const messageProcessingPromises = event.Records.map(processMessage);
+  const messageProcessingPromises = event.Records.map(processMessage);
 
-    return Promise.allSettled(messageProcessingPromises)
-})
+  return Promise.allSettled(messageProcessingPromises);
+});
 
-catalogBatchProcess.after(async (handler, next) => {
-  const sns = new SNS({ region: 'eu-west-1'});
+catalogBatchProcess.after(async (_, next) => {
+  const sns = new SNS({ region: 'eu-west-1' });
   const { SNS_ARN } = process.env;
 
   await sns
-  .publish(
-    {
-      Subject: "New products were added to the database",
-      Message: "New products were added to the database",
-      TopicArn: SNS_ARN,
-    },
-    (error, data) => {
-      if (error) {
-        console.log("SNS error: ", error);
-        return;
+    .publish(
+      {
+        Subject: 'New products were added to the database',
+        Message: 'New products were added to the database',
+        TopicArn: SNS_ARN,
+      },
+      (error, data) => {
+        if (error) {
+          console.log('SNS error: ', error);
+          return;
+        }
+
+        console.log('SNS: message was sent:', data);
       }
-
-      console.log("SNS: message was sent:", data);
-    }
-  )
-  .promise();
+    )
+    .promise();
   next();
-})
+});
 
-catalogBatchProcess
-  .use(sqsPartialBatchFailure())
-  .use(httpSecurityHeaders())
-  .use(httpErrorHandler())
-  .use(cors());
+catalogBatchProcess.use(sqsPartialBatchFailure()).use(httpErrorHandler());
 
-  export { catalogBatchProcess };
+export { catalogBatchProcess };

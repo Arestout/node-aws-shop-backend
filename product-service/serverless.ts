@@ -12,44 +12,62 @@ const serverlessConfiguration: Serverless = {
     webpack: {
       webpackConfig: './webpack.config.js',
       includeModules: {
-        forceExclude: ['@types/aws-lambda']
-      }
+        forceExclude: ['@types/aws-lambda'],
+      },
     },
   },
   resources: {
-    Outputs: { 
+    Outputs: {
       SQSQueueUrl: {
-        Value: { Ref: 'SQSQueueCSV'}
+        Value: { Ref: 'SQSQueueCSV' },
       },
       SQSQueueArn: {
-        Value: { 'Fn::GetAtt': ['SQSQueueCSV', 'Arn'] }
-      }
+        Value: { 'Fn::GetAtt': ['SQSQueueCSV', 'Arn'] },
+      },
     },
     Resources: {
       SQSQueueCSV: {
         Type: 'AWS::SQS::Queue',
         Properties: {
-          QueueName: 'catalogItemsQueue'
-        }
+          QueueName: 'catalogItemsQueue',
+          MessageRetentionPeriod: 60,
+          RedrivePolicy: {
+            deadLetterTargetArn: {
+              'Fn::GetAtt': ['DeadLetterQueueCSV', 'Arn'],
+            },
+            maxReceiveCount: 1,
+          },
+        },
+      },
+      DeadLetterQueueCSV: {
+        Type: 'AWS::SQS::Queue',
+        Properties: {
+          QueueName: 'deadLetterQueueCSV',
+          MessageRetentionPeriod: 1209600, //14 days
+        },
       },
       SNSTopic: {
         Type: 'AWS::SNS::Topic',
         Properties: {
-          TopicName: 'createProductTopic'
-        }
+          TopicName: 'createProductTopic',
+        },
       },
       SNSSubscription: {
         Type: 'AWS::SNS::Subscription',
         Properties: {
           Endpoint: '${self:provider.environment.EMAIL}',
           Protocol: 'email',
-          TopicArn: { Ref: 'SNSTopic' }
-        }
-      }
-    }
+          TopicArn: { Ref: 'SNSTopic' },
+        },
+      },
+    },
   },
   // Add the serverless-webpack plugin
-  plugins: ['serverless-webpack', 'serverless-dotenv-plugin', 'serverless-offline'],
+  plugins: [
+    'serverless-webpack',
+    'serverless-dotenv-plugin',
+    'serverless-offline',
+  ],
   provider: {
     name: 'aws',
     runtime: 'nodejs12.x',
@@ -66,18 +84,26 @@ const serverlessConfiguration: Serverless = {
       PG_USERNAME: process.env.RDS_USERNAME,
       PG_PASSWORD: process.env.RDS_PASSWORD,
       EMAIL: process.env.EMAIL,
-      SNS_ARN: { Ref: "SNSTopic" }
+      SNS_ARN: { Ref: 'SNSTopic' },
     },
     iamRoleStatements: [
-      { Effect: 'Allow',
+      {
+        Effect: 'Allow',
         Action: 'sqs:*',
-        Resource: [{ 'Fn::GetAtt': ['SQSQueueCSV', 'Arn'] }]
+        Resource: [{ 'Fn::GetAtt': ['SQSQueueCSV', 'Arn'] }],
       },
-      { Effect: 'Allow',
+      {
+        Effect: 'Allow',
         Action: 'sns:*',
-        Resource: [{ Ref: "SNSTopic" }]
-      }
-    ]
+        Resource: [{ Ref: 'SNSTopic' }],
+      },
+      {
+        Sid: 'LambdaDLQPermissions',
+        Effect: 'Allow',
+        Action: 'sqs:*',
+        Resource: [{ 'Fn::GetAtt': ['DeadLetterQueueCSV', 'Arn'] }],
+      },
+    ],
   },
   functions: {
     getProductsList: {
@@ -87,9 +113,9 @@ const serverlessConfiguration: Serverless = {
           http: {
             method: 'get',
             path: 'products',
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
     getProductById: {
       handler: 'handler.getProductById',
@@ -98,9 +124,9 @@ const serverlessConfiguration: Serverless = {
           http: {
             method: 'get',
             path: '/products/{productId}',
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
     postProduct: {
       handler: 'handler.postProduct',
@@ -109,10 +135,10 @@ const serverlessConfiguration: Serverless = {
           http: {
             method: 'post',
             path: 'products',
-            cors: true
-          }
-        }
-      ]
+            cors: true,
+          },
+        },
+      ],
     },
     catalogBatchProcess: {
       handler: 'handler.catalogBatchProcess',
@@ -121,13 +147,13 @@ const serverlessConfiguration: Serverless = {
           sqs: {
             batchSize: 5,
             arn: {
-              'Fn::GetAtt': ['SQSQueueCSV', 'Arn']
-            }
-          }
-        }
-      ]
-    }
-  }
-}
+              'Fn::GetAtt': ['SQSQueueCSV', 'Arn'],
+            },
+          },
+        },
+      ],
+    },
+  },
+};
 
 module.exports = serverlessConfiguration;

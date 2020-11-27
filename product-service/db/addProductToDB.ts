@@ -1,4 +1,4 @@
-interface Values {
+export interface Values {
     title: string;
     description: string;
     price: string | number;
