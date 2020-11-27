@@ -13,12 +13,16 @@ const serverlessConfiguration: Serverless = {
     webpack: {
       webpackConfig: './webpack.config.js',
       includeModules: {
-        forceExclude: ['@types/aws-lambda']
-      }
-    }
+        forceExclude: ['@types/aws-lambda'],
+      },
+    },
   },
   // Add the serverless-webpack plugin
-  plugins: ['serverless-webpack', 'serverless-dotenv-plugin', 'serverless-offline'],
+  plugins: [
+    'serverless-webpack',
+    'serverless-dotenv-plugin',
+    'serverless-offline',
+  ],
   provider: {
     name: 'aws',
     runtime: 'nodejs12.x',
@@ -29,17 +33,25 @@ const serverlessConfiguration: Serverless = {
     },
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+      SQS_URL: '${cf:product-service-${self:provider.stage}.SQSQueueUrl}',
     },
     iamRoleStatements: [
-      { Effect: 'Allow',
+      {
+        Effect: 'Allow',
         Action: 's3:ListBucket',
-        Resource: [`arn:aws:s3:::${BUCKET}`]
+        Resource: [`arn:aws:s3:::${BUCKET}`],
       },
-      { Effect: 'Allow',
-        Action: ['s3:*'],
-        Resource: [`arn:aws:s3:::${BUCKET}/*`]
+      {
+        Effect: 'Allow',
+        Action: 's3:*',
+        Resource: [`arn:aws:s3:::${BUCKET}/*`],
       },
-    ]
+      {
+        Effect: 'Allow',
+        Action: 'sqs:*',
+        Resource: ['${cf:product-service-${self:provider.stage}.SQSQueueArn}'],
+      },
+    ],
   },
   functions: {
     importProductsFile: {
@@ -53,33 +65,33 @@ const serverlessConfiguration: Serverless = {
             request: {
               parameters: {
                 querystrings: {
-                  name: true
-                }
-              }
-            }
-          }
-        }
-      ]
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      ],
     },
-    importFileParser : {
+    importFileParser: {
       handler: 'handler.importFileParser',
       events: [
-        { 
+        {
           s3: {
-            bucket: BUCKET ,
+            bucket: BUCKET,
             event: 's3:ObjectCreated:*',
             rules: [
-              { 
+              {
                 prefix: 'uploaded/',
-                suffix: '.csv'
-              }
+                suffix: '.csv',
+              },
             ],
-            existing: true
-          }
-        }
-      ]
-    }
-  }
-}
+            existing: true,
+          },
+        },
+      ],
+    },
+  },
+};
 
 module.exports = serverlessConfiguration;
