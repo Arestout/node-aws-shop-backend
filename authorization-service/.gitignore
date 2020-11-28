@@ -8,7 +8,4 @@ jspm_packages
 # Webpack directories
 .webpack
 
-**/.webpack
-**/.serverless
-**/.env
-**/node_modules
+.env
