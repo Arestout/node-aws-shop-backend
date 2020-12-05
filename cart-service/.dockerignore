@@ -1,0 +1,20 @@
+# Versioning and metadata
+.git
+.gitignore
+.dockerignore
+
+# Build dependencies
+node_modules
+
+# Environment (contains sensitive data)
+.env
+
+# Files not required for production
+Dockerfile
+README.md
+tslint.json
+eslint.json
+.prettierrc
+nest-cli.json
+test
+app.controller.spec.ts
