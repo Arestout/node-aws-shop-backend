@@ -1,0 +1,42 @@
+{
+  "name": "bff-for-aws-shop",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "type": "commonjs",
+  "description": "bff for aws shop",
+  "main": "src/server.js",
+  "scripts": {
+    "start:dev": "cross-env NODE_ENV=development nodemon src/server.js",
+    "start": "node ./src/server",
+    "lint": "eslint ./ --ignore-path .gitignore --fix",
+    "eb-init": "eb init --region eu-west-1 --platform node.js",
+    "eb-create": "eb create development --single --cname arestout-bff-api",
+    "eb-deploy": "eb deploy development",
+    "eb-terminate": "eb terminate"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "dependencies": {
+    "axios": "^0.21.0",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "8.2.0",
+    "express": "4.17.1",
+    "helmet": "^4.2.0",
+    "http-errors": "^1.8.0"
+  },
+  "devDependencies": {
+    "eslint": "6.7.2",
+    "eslint-config-prettier": "6.7.0",
+    "eslint-plugin-node": "10.0.0",
+    "eslint-plugin-prettier": "3.1.1",
+    "nodemon": "2.0.2",
+    "prettier": "1.19.1"
+  }
+}
