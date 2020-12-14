@@ -35,8 +35,10 @@ const makeRequest = async (originalUrl, method, body) => {
 
     const response = await axios(axiosConfig);
 
-    cache[cacheKey] = response.data;
-    setTimer(cacheKey, cache);
+    if (method === 'GET') {
+      cache[cacheKey] = response.data;
+      setTimer(cacheKey, cache);
+    }
 
     return response.data;
   } catch (err) {
