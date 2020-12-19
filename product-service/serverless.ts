@@ -140,6 +140,18 @@ const serverlessConfiguration: Serverless = {
         },
       ],
     },
+    deleteProduct: {
+      handler: 'handler.deleteProduct',
+      events: [
+        {
+          http: {
+            method: 'delete',
+            path: 'products/{productId}',
+            cors: true,
+          },
+        },
+      ],
+    },
     catalogBatchProcess: {
       handler: 'handler.catalogBatchProcess',
       events: [

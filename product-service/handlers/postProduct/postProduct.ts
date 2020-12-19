@@ -15,16 +15,19 @@ import { addProductToDB } from '../../db';
 
 const postProduct = middy(
   async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
-    // const { httpMethod, path, body } = event;
-    // console.log(JSON.stringify({ httpMethod, path, body }, null, 2));
-
     const client = new Client(dbOptions);
     await client.connect();
 
     try {
       const { title, description, price, image, count }: any = event.body;
 
-      const productId = await addProductToDB(client, { title, description, price, image, count });
+      const productId = await addProductToDB(client, {
+        title,
+        description,
+        price,
+        image,
+        count,
+      });
 
       const { rows: product } = await client.query(
         `
@@ -43,9 +46,14 @@ const postProduct = middy(
         },
         body: JSON.stringify(product[0]),
       };
-    } catch (err) {
+    } catch (error) {
       await client.query('ROLLBACK');
-      throw new createError.InternalServerError();
+      console.log(error);
+      if (!error.statusCode) {
+        throw new createError.InternalServerError();
+      }
+
+      throw error;
     } finally {
       client.end();
     }

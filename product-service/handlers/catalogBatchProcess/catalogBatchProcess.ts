@@ -31,7 +31,11 @@ const catalogBatchProcess = middy(async (event: SQSEvent) => {
       return;
     } catch (error) {
       console.log(error);
-      throw new createError.InternalServerError();
+      if (!error.statusCode) {
+        throw new createError.InternalServerError();
+      }
+
+      throw error;
     } finally {
       client.end();
     }
