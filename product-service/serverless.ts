@@ -140,6 +140,18 @@ const serverlessConfiguration: Serverless = {
         },
       ],
     },
+    updateProduct: {
+      handler: 'handler.updateProduct',
+      events: [
+        {
+          http: {
+            method: 'put',
+            path: 'products/{productId}',
+            cors: true,
+          },
+        },
+      ],
+    },
     deleteProduct: {
       handler: 'handler.deleteProduct',
       events: [

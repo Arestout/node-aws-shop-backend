@@ -40,7 +40,7 @@ const deleteProduct = middy(
       };
 
       const { rows: product } = await client.query(queryProducts);
-      console.log(product);
+
       if (product.length === 0) {
         throw new createError.BadRequest('Failed to delete product');
       }
